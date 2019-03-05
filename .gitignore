@@ -89,6 +89,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+bestface-venv/
 
 # Spyder project settings
 .spyderproject
@@ -116,3 +117,14 @@ venv.bak/
 pyvenv.cfg
 .venv
 pip-selfcheck.json
+
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+.history
