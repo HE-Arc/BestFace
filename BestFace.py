@@ -24,22 +24,6 @@ def generate_image_directory():
 
     return path
 
-def use_camera():
-    cap = cv.VideoCapture(0)
-
-    while(True):
-        ret, frame = cap.read()
-        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        ret, vj = viola_jones(gray)
-        if ret:
-            name = "img_" + time().__str__() + ".png"
-            cv.imwrite(name, frame, [int(cv.IMWRITE_PNG_COMPRESSION), 9])
-        cv.imshow('vj', vj)
-        if(cv.waitKey(1) & 0xFF == ord('q')):
-            break
-    cap.release()
-    cv.destroyAllWindows()
-
 def viola_jones(img):
     detected = False
     face_cascade = cv.CascadeClassifier(os.getenv("FACE_CASCADE_CLASSIFIER", 0))
