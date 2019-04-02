@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 from threading import Thread
 from queue import Queue, Empty
 
+import re
+import random
+
 #####
 #
 # Face Detection
@@ -18,6 +21,8 @@ from queue import Queue, Empty
 
 MIN_WIDTH = 300
 MIN_HEIGT = 300
+
+IMG_EXT = ".png"
 
 def generate_image_directory():
     '''
@@ -53,6 +58,60 @@ def viola_jones(img):
     except:
         pass
     return detected, img
+
+#####
+#
+# Face Selection
+#
+#####
+
+def get_bestface_dirs():
+    current_dir = os.getcwd()
+    dirs = list(filter(lambda x: os.path.isdir(x), os.listdir(current_dir)))
+    bestface_dirs = list(filter(lambda dir_name : re.match("^bestface_\d{5,10}$", dir_name), dirs))
+    return bestface_dirs
+
+def face_score(picture):
+    """
+    assign a score to a picture considering symetric parameters
+    the score values is between 0 and 1
+    """
+    return random.random()
+
+def select_face():
+    """
+    Foreach dir that is named "bestface_xxx"
+    Take all the picture and save the best one
+    """
+    bestface_dirs = get_bestface_dirs()
+    for d in bestface_dirs:
+        ranked_pictures = []
+
+        # Get all the pictures
+        dir_path = os.listdir(os.path.join(os.getcwd(), d))
+        files = list(filter(lambda x: os.path.isfile(x), dir_path))
+        print(files)
+        pictures = files# WIP list(filter(lambda f: re.match("^img\d{1,3}\.png$", f), files))
+        #print(pictures)
+
+        # foreach pictures
+        for pic in pictures:
+            # assign a score
+            score = face_score(pic)
+            ranked_pictures.append({"score": score, "picture" :pic})
+        print(ranked_pictures)
+        
+        # Sort the pictures by score
+        sorted_pictures = sorted(ranked_pictures, key = lambda entry: entry["score"])
+        print(sorted_pictures)
+
+        # TODO Save the best picture in another folder (bestfaces ?)
+
+        # TODO delete the folder
+        
+    # search new folder
+    
+    # TODO Continue while new folders are here
 
 #####
 #
@@ -114,7 +173,7 @@ class PhotoTakerConsumerThread(Thread):
                     sequence_running = True
                     dir_path = generate_image_directory()
 
-                img_path = os.path.join(dir_path, "img" + str(img_num) + ".png")
+                img_path = os.path.join(dir_path, "img" + str(img_num) + IMG_EXT)
                 cv.imwrite(img_path, img, [int(cv.IMWRITE_PNG_COMPRESSION), 9])
                 
                 img_num += 1
@@ -138,6 +197,9 @@ if __name__=="__main__":
     viola_jones()
     '''
 
+    select_face()
+
+    """
     producer = CameraProducerThread()
     consumer = PhotoTakerConsumerThread()
 
@@ -148,3 +210,4 @@ if __name__=="__main__":
         if input() == "q":
             run = False
             break
+    """
