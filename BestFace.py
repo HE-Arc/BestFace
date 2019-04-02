@@ -29,7 +29,10 @@ def generate_image_directory():
 
     # Create directory using the current working dir
     path = os.path.join(os.getcwd(), directory_name)
-    os.mkdir(path)
+    try:
+        os.mkdir(path)
+    except Exception as e:
+        print(f"An error occured: {e}")
 
     return path
 
@@ -59,6 +62,9 @@ def viola_jones(img):
 
 queue = Queue(20)
 run = True
+
+IMG_TO_SKIP = 5
+img_skipped = 0
 
 class CameraProducerThread(Thread):
     '''
@@ -91,12 +97,18 @@ class PhotoTakerConsumerThread(Thread):
         global queue
         global run
 
+        global img_skipped
+
         sequence_running = False
         dir_path = None
         img_num = 0
         while run:
             try:
                 img = queue.get_nowait()
+
+                if img_skipped % IMG_TO_SKIP != 0:
+                    img_skipped += 1
+                    pass
 
                 if not sequence_running:
                     sequence_running = True
