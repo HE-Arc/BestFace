@@ -13,6 +13,8 @@ from queue import Queue, Empty
 import re
 import random
 
+from shutil import rmtree
+
 #####
 #
 # Face Detection
@@ -83,6 +85,14 @@ def select_face():
     Foreach dir that is named "bestface_xxx"
     Take all the picture and save the best one
     """
+    # Create the directory where the best faces will be stored
+    select_face_dir = "bestfaces"
+    try:
+        os.mkdir(select_face_dir)
+    except Exception as e:
+        print(e)
+
+    # Run throught all directory so throught each person
     bestface_dirs = get_bestface_dirs()
     for d in bestface_dirs:
         print(f"Directory: {d}")
@@ -104,9 +114,16 @@ def select_face():
         sorted_pictures = sorted(ranked_pictures, key = lambda entry: entry["score"])
         print(sorted_pictures)
 
-        # TODO Save the best picture in another folder (bestfaces ?)
+        # Save the best picture in another folder (bestfaces ?)
+        select_face_path = os.path.join(select_face_dir,d + ".png")
+        try:
+            os.rename(os.path.join(d, sorted_pictures[0]["picture"]), select_face_path)
+        except FileExistsError as e:
+            # Don't do anything
+            continue
 
-        # TODO delete the folder
+        # delete the folder
+        rmtree(d)
         
     # search new folder
     
