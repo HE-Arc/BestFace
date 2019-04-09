@@ -5,7 +5,7 @@
 # Project specifics
 bestface_*/
 bestfaces/
-./eyes/*.png
+eyes/
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
