@@ -78,6 +78,8 @@ def face_score(picture):
     assign a score to a picture considering symetric parameters
     the score values is between 0 and 1
     """
+
+
     return random.random()
 
 def select_face():
@@ -89,8 +91,9 @@ def select_face():
     select_face_dir = "bestfaces"
     try:
         os.mkdir(select_face_dir)
-    except Exception as e:
-        print(e)
+    except:
+        # the directory already exists
+        pass
 
     # Run throught all directory so throught each person
     bestface_dirs = get_bestface_dirs()
@@ -120,7 +123,7 @@ def select_face():
             os.rename(os.path.join(d, sorted_pictures[0]["picture"]), select_face_path)
         except FileExistsError as e:
             # Don't do anything
-            continue
+            pass
 
         # delete the folder
         rmtree(d)
@@ -146,6 +149,8 @@ class CameraProducerThread(Thread):
     This class provide all the images of a face when detected
     '''
     def run(self):
+        print("producer start running")
+
         global queue
         global run
 
@@ -161,6 +166,7 @@ class CameraProducerThread(Thread):
                     queue.put(vj)
         finally:
             cap.release()
+            print("producer stopped")
 
 
 class PhotoTakerConsumerThread(Thread):
@@ -169,6 +175,8 @@ class PhotoTakerConsumerThread(Thread):
     '''
     
     def run(self):
+        print("consumer start running")
+
         global queue
         global run
 
@@ -198,6 +206,7 @@ class PhotoTakerConsumerThread(Thread):
                 sequence_running = False
                 img_num = 0
             pass
+        print("consumer stopped")
 
 #####
 #
@@ -213,12 +222,10 @@ if __name__=="__main__":
     viola_jones()
     '''
 
-    select_face()
-
-    """
     producer = CameraProducerThread()
     consumer = PhotoTakerConsumerThread()
 
+    # Start the threads
     producer.start()
     consumer.start()
 
@@ -226,4 +233,6 @@ if __name__=="__main__":
         if input() == "q":
             run = False
             break
-    """
+
+    # Select the best pictures
+    select_face()
