@@ -85,21 +85,20 @@ def select_face():
     """
     bestface_dirs = get_bestface_dirs()
     for d in bestface_dirs:
+        print(f"Directory: {d}")
+
         ranked_pictures = []
 
         # Get all the pictures
-        dir_path = os.listdir(os.path.join(os.getcwd(), d))
-        files = list(filter(lambda x: os.path.isfile(x), dir_path))
-        print(files)
-        pictures = files# WIP list(filter(lambda f: re.match("^img\d{1,3}\.png$", f), files))
-        #print(pictures)
+        dir_files = os.listdir(os.path.join(os.getcwd(), d))
+        pictures = list(filter(lambda f: re.match("^img\d{1,3}\.png$", f), dir_files))
 
         # foreach pictures
         for pic in pictures:
             # assign a score
             score = face_score(pic)
             ranked_pictures.append({"score": score, "picture" :pic})
-        print(ranked_pictures)
+        #print(ranked_pictures)
         
         # Sort the pictures by score
         sorted_pictures = sorted(ranked_pictures, key = lambda entry: entry["score"])
