@@ -15,6 +15,9 @@ import random
 
 from shutil import rmtree
 
+from statistics import mean
+from math import log
+
 #####
 #
 # Face Detection
@@ -39,7 +42,8 @@ def generate_image_directory():
     try:
         os.mkdir(path)
     except Exception as e:
-        print(f"An error occured: {e}")
+        #print(f"An error occured: {e}")
+        pass
 
     return path
 
@@ -56,10 +60,78 @@ def viola_jones(img):
         for(x, y, w, h) in faces:
             if w >= MIN_HEIGT and h >= MIN_HEIGT:
                 detected = True
-                cv.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
+                # cv.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
     except:
         pass
     return detected, img
+
+score_eyes_img_counter = 0
+def score_eyes(img):
+    """
+    Check eyes caracteristics of the eyes and return a score
+    if the value is near 1, the eyes are align
+    else, the eyes are not align and the values is near 0
+    """
+    global score_eyes_img_counter
+    eye_cascade = cv.CascadeClassifier(os.getenv("EYE_CASCADE_CLASSIFIER", 0))
+
+    scores = {
+        "size": 0, 
+        "alignement": 0,
+        "distance": 0,
+    }
+    try:
+        eyes = eye_cascade.detectMultiScale(img)
+        if len(eyes) < 2: # don't detect the two eyes
+            return 0
+        score_eyes_img_counter += 1
+        # OpenCV return a square rectangle where the eyes are centered
+        e_left = eyes[0]
+        e_right = eyes[1]
+
+        print(f"left: {e_left}\tright: {e_right}")
+
+        # Size
+        if e_left[2] < 60 or e_right[2] < 60:
+            # if the eyes are too small
+            return 0
+        if e_left[2] > e_right[2]:
+            # left eye is bigger
+            scores["size"] = e_right[2] / e_left[2]
+        elif e_right[2] > e_left[2]:
+            # right eye is bigger
+            scores["size"] = e_left[2] / e_right[2]
+        else:
+            scores["size"] = 1
+
+        # TODO alignement
+        abs_height = abs(e_left[1] - e_right[1])
+        if abs_height == 0 or abs_height < 10:
+            scores["alignement"] = 1
+        else:
+            x = abs_height / 10
+            scores["alignement"] = ((1 / x * log(x)) - 1/x) # TODO too low
+
+        print(f"height: {abs_height} \talignement: {scores['alignement']}")
+        
+        # TEMP save the images with eyes
+        img_path = os.path.join(os.getcwd(),"eyes", score_eyes_img_counter.__str__() + ".png")
+        cv.rectangle(img,(e_left[0],e_left[1]),(e_left[0]+e_left[2],e_left[1]+e_left[3]),(0,255,0),2)
+        cv.rectangle(img,(e_right[0],e_right[1]),(e_right[0]+e_right[2],e_right[1]+e_right[3]),(255,0,0),2)
+        cv.imwrite(img_path, img, [int(cv.IMWRITE_PNG_COMPRESSION), 9])
+        # If it can save the score above condition are ok
+
+        # TODO distance
+        scores["distance"] = 0
+        
+    except Exception as e:
+        print(e)
+
+    final_score = mean(scores.values())
+
+    #print(final_score)
+
+    return final_score
 
 #####
 #
@@ -73,20 +145,24 @@ def get_bestface_dirs():
     bestface_dirs = list(filter(lambda dir_name : re.match("^bestface_\d{5,10}$", dir_name), dirs))
     return bestface_dirs
 
-def face_score(picture):
+def face_score(picture_path):
     """
-    assign a score to a picture considering symetric parameters
+    assign a score to a picture using its path. It refer to symetrie.
     the score values is between 0 and 1
     """
+    picture = cv.imread(picture_path)
 
+    scores = []
+    scores.append(score_eyes(picture))
 
-    return random.random()
+    return mean(scores)
 
 def select_face():
     """
     Foreach dir that is named "bestface_xxx"
     Take all the picture and save the best one
     """
+    print("Start selection...")
     # Create the directory where the best faces will be stored
     select_face_dir = "bestfaces"
     try:
@@ -109,24 +185,28 @@ def select_face():
         # foreach pictures
         for pic in pictures:
             # assign a score
-            score = face_score(pic)
+            score = face_score(os.path.join(d, pic))
             ranked_pictures.append({"score": score, "picture" :pic})
         #print(ranked_pictures)
         
         # Sort the pictures by score
         sorted_pictures = sorted(ranked_pictures, key = lambda entry: entry["score"])
-        print(sorted_pictures)
+        #print(sorted_pictures)
 
         # Save the best picture in another folder (bestfaces ?)
         select_face_path = os.path.join(select_face_dir,d + ".png")
         try:
             os.rename(os.path.join(d, sorted_pictures[0]["picture"]), select_face_path)
-        except FileExistsError as e:
-            # Don't do anything
+        except IndexError as ie:
+            # Empty files
             pass
+        except FileExistsError as e:
+            # Replace it
+            os.remove(select_face_path)
+            os.rename(os.path.join(d, sorted_pictures[0]["picture"]), select_face_path)
 
         # delete the folder
-        rmtree(d)
+        #rmtree(d)
         
     # search new folder
     
@@ -226,9 +306,10 @@ if __name__=="__main__":
     consumer = PhotoTakerConsumerThread()
 
     # Start the threads
-    producer.start()
-    consumer.start()
+    #producer.start()
+    #consumer.start()
 
+    #run = False
     while run:
         if input() == "q":
             run = False
