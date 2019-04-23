@@ -73,15 +73,22 @@ def score_eyes(img):
     else, the eyes are not align and the values is near 0
     """
     global score_eyes_img_counter
+    face_cascade = cv.CascadeClassifier(os.getenv("FACE_CASCADE_CLASSIFIER", 0))
     eye_cascade = cv.CascadeClassifier(os.getenv("EYE_CASCADE_CLASSIFIER", 0))
 
     scores = {
         "size": 0, 
         "alignement": 0,
-        "distance": 0,
     }
     try:
-        eyes = eye_cascade.detectMultiScale(img)
+        # Retect the face to get ROI as face
+        faces = face_cascade.detectMultiScale(img, 1.3, 5)
+        if len(faces) != 1:
+            print("detect more or less than one face: " + len(faces).__str__())
+            return 0 
+        for (x, y, w, h) in faces:
+            roi = img[y:y+h, x:x+w]
+        eyes = eye_cascade.detectMultiScale(roi)
         if len(eyes) < 2: # don't detect the two eyes
             return 0
         score_eyes_img_counter += 1
@@ -104,25 +111,23 @@ def score_eyes(img):
         else:
             scores["size"] = 1
 
-        # TODO alignement
+        # Alignement
         abs_height = abs(e_left[1] - e_right[1])
-        if abs_height == 0 or abs_height < 10:
-            scores["alignement"] = 1
-        else:
-            x = abs_height / 10
-            scores["alignement"] = ((1 / x * log(x)) - 1/x) # TODO too low
+        mean_eye_height = mean([e_left[2], e_right[2]])
+        height_ratio = 1 - (abs_height / mean_eye_height)
+        if height_ratio < 0:
+            height_ratio = 0
 
-        print(f"height: {abs_height} \talignement: {scores['alignement']}")
+        scores['alignement'] = height_ratio
+
+        # print(f"abs_height: {abs_height} \t mean height: {mean_eye_height} \talignement: {scores['alignement']}")
         
         # TEMP save the images with eyes
         img_path = os.path.join(os.getcwd(),"eyes", score_eyes_img_counter.__str__() + ".png")
-        cv.rectangle(img,(e_left[0],e_left[1]),(e_left[0]+e_left[2],e_left[1]+e_left[3]),(0,255,0),2)
-        cv.rectangle(img,(e_right[0],e_right[1]),(e_right[0]+e_right[2],e_right[1]+e_right[3]),(255,0,0),2)
-        cv.imwrite(img_path, img, [int(cv.IMWRITE_PNG_COMPRESSION), 9])
-        # If it can save the score above condition are ok
-
-        # TODO distance
-        scores["distance"] = 0
+        cv.rectangle(roi,(e_left[0],e_left[1]),(e_left[0]+e_left[2],e_left[1]+e_left[3]),(0,255,0),2)
+        cv.rectangle(roi,(e_right[0],e_right[1]),(e_right[0]+e_right[2],e_right[1]+e_right[3]),(255,0,0),2)
+        cv.imwrite(img_path, roi, [int(cv.IMWRITE_PNG_COMPRESSION), 9])
+        # If it can save, the score above condition are ok
         
     except Exception as e:
         print(e)
@@ -186,12 +191,13 @@ def select_face():
         for pic in pictures:
             # assign a score
             score = face_score(os.path.join(d, pic))
+            print(f"pic: {pic}\tscore: {score}")
             ranked_pictures.append({"score": score, "picture" :pic})
         #print(ranked_pictures)
         
         # Sort the pictures by score
         sorted_pictures = sorted(ranked_pictures, key = lambda entry: entry["score"])
-        #print(sorted_pictures)
+        print(f"Sorted pictures:\n{sorted_pictures}")
 
         # Save the best picture in another folder (bestfaces ?)
         select_face_path = os.path.join(select_face_dir,d + ".png")
@@ -306,8 +312,8 @@ if __name__=="__main__":
     consumer = PhotoTakerConsumerThread()
 
     # Start the threads
-    #producer.start()
-    #consumer.start()
+    producer.start()
+    consumer.start()
 
     #run = False
     while run:
